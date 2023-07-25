@@ -1,11 +1,25 @@
 from itertools import combinations
-from nonograms_dfs import is_equal
+from itertools import groupby
 import json
 import time
+import tracemalloc
 import numpy as np
+from display import draw_nonogram
 
 ROWS = None
 COLS = None
+
+def get_user_input():
+    board_type = input("Chọn loại board (5x5, 15x15): ")
+
+    if board_type not in ["5x5", "15x15"]:
+        raise "Invalid board type"
+
+    level = int(input("Chọn màn chơi (1->5): "))
+    if level not in range(1, 6):
+        raise "Invalid game level"
+
+    return board_type, level
 
 def get_all_moves(consts, length):
     all_moves = []
@@ -16,6 +30,22 @@ def get_all_moves(consts, length):
         all_moves.append(moves)
 
     return all_moves
+
+def is_equal(constraint: np.array, line: np.array):
+    line_shape = get_shape(line=line)
+
+    if len(constraint) != len(line_shape):
+        return False
+
+    if not np.all(np.equal(constraint, line_shape)):
+        return False
+
+    return True
+
+def get_shape(line: np.array):
+    clusters = [list(group) for key, group in groupby(line) if key != 0]
+
+    return [np.sum(cluster) for cluster in clusters]
 
 
 def generate_moves(const, length):
@@ -114,21 +144,27 @@ def main(_ROWS, _COLS):
         # alternate axis
         current_axis = not current_axis
 
+    draw_nonogram(ROWS, COLS, init_state)
+
 if __name__ == "__main__":
-    board_types = ["5x5", "15x15"]
-    file = open("gameplays/15x15/game_4.json")
+    board_type, level = get_user_input()
+
+    file = open(f"gameplays/{board_type}/game_{level}.json")
     data = json.load(file)
 
     COLS = data['cols']
     ROWS = data['rows']
-
+    
     # Record the start time before calling the function
     start_time = time.time()
+
+    # starting the monitoring
+    tracemalloc.start()
 
     main(ROWS, COLS)
 
     # Record the end time after the function has completed execution
     end_time = time.time()
 
-    print("SOLVED!")
-    print(end_time - start_time)
+    print(f"FINISHED IN {round(end_time - start_time, 3)}s!")
+    print(f"Memory usage: {tracemalloc.get_traced_memory()[1]}")
